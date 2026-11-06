@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mưa Từ Vựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #12282d;
+    --ink-deep: #0a1b1f;
+    --chalk: #f4efe2;
+    --chalk-dim: #aebcb6;
+    --sun: #ffd166;
+    --mint: #7fe0b8;
+    --coral: #ff7b6b;
+    --wood: #e8c39a;
+    --line: rgba(244, 239, 226, 0.16);
+    --font-display: "Baloo 2", "Be Vietnam Pro", system-ui, sans-serif;
+    --font-body: "Be Vietnam Pro", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; box-sizing: border-box; }
+  body {
+    background: var(--ink-deep);
+    color: var(--chalk);
+    font: 14px/1.5 var(--font-body);
+    margin: 0;
+  }
+  .app {
+    box-sizing: border-box;
+    height: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-block: 12px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .hud { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 3px; line-height: 1; min-width: 0; }
+  .stat span { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); }
+  .stat b { font-family: var(--font-display); font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat b.done { color: var(--mint); }
+  .right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+  .btn {
+    font-family: var(--font-display); font-weight: 800; font-size: 18px; line-height: 1;
+    color: var(--chalk); background: transparent; border: 1.5px solid var(--line);
+    border-radius: 12px; padding: 12px 20px; cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--chalk-dim); }
+  .btn:focus-visible, .chip:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.primary { background: var(--sun); border-color: var(--sun); color: var(--ink-deep); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.small { font-size: 14px; padding: 8px 12px; border-radius: 10px; font-family: var(--font-body); font-weight: 600; }
+
+  .stage {
+    position: relative; flex: 1; min-height: 320px; overflow: hidden;
+    border-radius: 16px; background: var(--ink); box-shadow: inset 0 0 0 1px var(--line);
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+
+  .overlay {
+    position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
+    background: rgba(10, 27, 31, 0.74); overflow-y: auto;
+  }
+  .overlay[hidden] { display: none; }
+  .panel {
+    width: 100%; max-width: 430px; box-sizing: border-box; padding: 22px;
+    background: var(--ink); border: 1px solid var(--line); border-radius: 16px;
+    display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  }
+  .eyebrow { margin: 0; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mint); }
+  h1, h2 { margin: 0; font-family: var(--font-display); font-weight: 800; line-height: 1.05; text-wrap: balance; }
+  h1 { font-size: 44px; color: var(--sun); }
+  h2 { font-size: 34px; color: var(--sun); }
+  h3 { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); font-weight: 600; }
+  .lead { margin: 0; color: var(--chalk); }
+  .how { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; color: var(--chalk-dim); font-size: 13px; }
+  .topics { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font: 500 14px var(--font-body); color: var(--chalk); background: transparent;
+    border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer;
+  }
+  .chip[aria-checked="true"] { background: var(--chalk); color: var(--ink-deep); border-color: var(--chalk); font-weight: 600; }
+  .best { margin: 0; color: var(--chalk-dim); font-size: 13px; }
+  .best b { color: var(--sun); font-variant-numeric: tabular-nums; }
+  .result { display: flex; gap: 22px; flex-wrap: wrap; }
+  .result div { display: flex; flex-direction: column; gap: 2px; }
+  .result span { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); }
+  .result b { font-family: var(--font-display); font-size: 34px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .review { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  .review li { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .review b { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--chalk); overflow-wrap: anywhere; }
+  .review span { color: var(--sun); font-size: 13px; overflow-wrap: anywhere; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  @media (max-width: 440px) {
+    h1 { font-size: 38px; }
+    .panel { padding: 18px; }
+    .review { grid-template-columns: 1fr; }
+  }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="stats">
+      <div class="stat"><span>Điểm</span><b id="score">0</b></div>
+      <div class="stat"><span>Cấp</span><b id="level">1</b></div>
+      <div class="stat"><span>Combo</span><b id="combo">×1</b></div>
+      <div class="stat"><span>Còn</span><b id="left">0</b></div>
+      <div class="stat"><span>Sai</span><b id="wrong">0</b></div>
+    </div>
+    <div class="right">
+      <button class="btn small" id="pause" type="button" disabled>Tạm dừng</button>
+      <button class="btn small" id="mute" type="button">Âm: Bật</button>
+    </div>
+  </header>
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Màn chơi Mưa Từ Vựng"></canvas>
+    <div class="overlay" id="overlay"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Vocabulary: [English, Vietnamese], every Vietnamese meaning is unique ---------- */
+  var TOPICS = {
+    all: { name: 'Tất cả', words: [
+      ['firm', 'công ty'], ['admit', 'thừa nhận'], ['reveal', 'tiết lộ'], ['analyse', 'phân tích chuyên sâu'], ['evaluate', 'định giá'],
+      ['worth', 'đáng giá'], ['emerge', 'xuất hiện'], ['sophisticated', 'tinh vi'], ['approach', 'cách tiếp cận'], ['consistent', 'nhất quán'],
+      ['pioneer', 'người tiên phong'], ['crop', 'cây trồng'], ['portable', 'xách tay'], ['area', 'khu vực'], ['contract', 'hợp đồng'],
+      ['convince', 'thuyết phục'], ['multiple', 'nhiều'], ['device', 'thiết bị'], ['assess', 'đánh giá mức độ'], ['indicate', 'chỉ ra'],
+      ['prospect', 'triển vọng'], ['remote', 'xa xôi'], ['consider', 'cân nhắc'], ['assume', 'giả định'], ['period', 'giai đoạn'],
+      ['appeal', 'sức hấp dẫn'], ['handle', 'xử lý'], ['particularly', 'đặc biệt là'], ['authority', 'thẩm quyền'], ['legal', 'hợp pháp'],
+      ['satisfy', 'làm hài lòng'], ['vertical', 'thẳng đứng'], ['obese', 'béo phì'], ['available', 'có sẵn'], ['factor', 'yếu tố'],
+      ['demand', 'nhu cầu'], ['statistics', 'số liệu thống kê'], ['rapid', 'nhanh chóng'], ['concept', 'khái niệm'], ['define', 'định nghĩa'],
+      ['efficient', 'hiệu suất cao'], ['right (n)', 'quyền'], ['adolescent', 'thanh thiếu niên'], ['consist', 'bao gồm'], ['distribute', 'phân phối'],
+      ['sustainable', 'bền vững'], ['enable', 'cho phép'], ['epidemic', 'dịch bệnh'], ['context', 'bối cảnh'], ['estimate', 'ước lượng']
+    ]},
+    basic: { name: 'Cơ bản', words: [
+      ['house', 'ngôi nhà'], ['book', 'quyển sách'], ['water', 'nước'], ['friend', 'bạn bè'],
+      ['school', 'trường học'], ['family', 'gia đình'], ['happy', 'vui vẻ'], ['big', 'to lớn'],
+      ['small', 'nhỏ bé'], ['fast', 'nhanh'], ['slow', 'chậm'], ['sun', 'mặt trời'],
+      ['moon', 'mặt trăng'], ['tree', 'cái cây'], ['door', 'cửa ra vào'], ['window', 'cửa sổ'],
+      ['ability', 'khả năng'], ['opportunity', 'cơ hội'], ['experience', 'trải nghiệm'], ['advantage', 'lợi thế'],
+      ['disadvantage', 'bất lợi'], ['increase', 'gia tăng'], ['decrease', 'suy giảm'], ['challenge', 'thách thức'],
+      ['solution', 'giải pháp'], ['reason', 'lý do'], ['result', 'kết quả'], ['effect', 'tác động'],
+      ['influence', 'ảnh hưởng'], ['opinion', 'quan điểm'], ['argue', 'tranh luận'], ['agree', 'đồng ý'],
+      ['prefer', 'ưa thích'], ['suggest', 'gợi ý'], ['recommend', 'giới thiệu'], ['request', 'yêu cầu'],
+      ['refuse', 'từ chối'], ['avoid', 'tránh né'], ['risk', 'rủi ro'], ['benefit', 'lợi ích'],
+      ['comfortable', 'thoải mái'], ['embarrassed', 'xấu hổ'], ['curious', 'tò mò'], ['anxious', 'lo lắng'],
+      ['enthusiastic', 'nhiệt tình'], ['ambitious', 'đầy tham vọng'], ['honest', 'trung thực'], ['patient', 'kiên nhẫn'],
+      ['confident', 'tự tin']
+    ]},
+    education: { name: 'Education', words: [
+      ['curriculum', 'chương trình học'], ['syllabus', 'đề cương môn học'], ['subject', 'môn học'], ['course', 'khóa học'],
+      ['assignment', 'bài tập'], ['project', 'dự án'], ['presentation', 'bài thuyết trình'], ['lecture', 'bài giảng'],
+      ['seminar', 'buổi hội thảo'], ['workshop', 'buổi thực hành'],
+      ['revise', 'ôn tập'], ['memorize', 'học thuộc lòng'], ['concentrate on', 'tập trung vào'], ['take notes', 'ghi chép'],
+      ['participate in', 'tham gia'], ['discuss', 'thảo luận'], ['analyse', 'phân tích'], ['solve problems', 'giải quyết vấn đề'],
+      ['improve', 'cải thiện'], ['gain knowledge', 'tiếp thu kiến thức'],
+      ['achieve', 'đạt được'], ['achievement', 'thành tựu'], ['make progress', 'tiến triển'], ['perform well', 'học tốt'],
+      ['get good grades', 'đạt điểm cao'], ['pass an exam', 'đỗ kỳ thi'], ['fail an exam', 'trượt kỳ thi'], ['graduate', 'tốt nghiệp'],
+      ['certificate', 'chứng chỉ'], ['qualification', 'bằng cấp'],
+      ['instructor', 'người hướng dẫn'], ['lecturer', 'giảng viên'], ['tutor', 'gia sư'],
+      ['encourage', 'khích lệ'], ['motivate', 'tạo động lực'], ['guide', 'hướng dẫn'],
+      ['assess', 'đánh giá'], ['feedback', 'phản hồi'],
+      ['compulsory education', 'giáo dục bắt buộc'], ['higher education', 'giáo dục đại học'],
+      ['vocational training', 'đào tạo nghề'], ['online learning', 'học trực tuyến'], ['distance learning', 'học từ xa'],
+      ['public school', 'trường công'], ['private school', 'trường tư'], ['scholarship', 'học bổng'], ['tuition fee', 'học phí'],
+      ["broaden one's knowledge", 'mở rộng kiến thức'], ['acquire new skills', 'tiếp thu kỹ năng mới'],
+      ['develop critical thinking', 'phát triển tư duy phản biện'], ['improve communication skills', 'cải thiện kỹ năng giao tiếp'],
+      ['gain practical experience', 'tích lũy kinh nghiệm thực tế'], ['lifelong learning', 'học tập suốt đời'],
+      ['learning environment', 'môi trường học tập'], ['quality education', 'giáo dục chất lượng'],
+      ['academic pressure', 'áp lực học tập'], ['educational opportunities', 'cơ hội giáo dục'],
+      ['enrol', 'ghi danh'], ['develop', 'phát triển'],
+      ['evaluate', 'thẩm định'],
+      ['educational', 'mang tính giáo dục'], ['academic', 'học thuật'], ['practical', 'thực tế'],
+      ['theoretical', 'mang tính lý thuyết'], ['effective', 'hiệu quả'], ['flexible', 'linh động'],
+      ['interactive', 'có tính tương tác'], ['beneficial', 'có lợi'], ['knowledgeable', 'hiểu biết'],
+      ['challenging', 'đầy thử thách'],
+      ['the education system', 'hệ thống giáo dục'], ['tertiary education', 'giáo dục bậc cao'],
+      ['vocational education', 'giáo dục nghề nghiệp'], ['formal education', 'giáo dục chính quy'],
+      ['home schooling', 'giáo dục tại nhà'],
+      ['receive a high-quality education', 'được hưởng nền giáo dục chất lượng cao'],
+      ['improve educational standards', 'nâng cao chất lượng giáo dục'],
+      ['provide equal educational opportunities', 'tạo cơ hội giáo dục bình đẳng'],
+      ['bridge the educational gap', 'thu hẹp khoảng cách giáo dục'],
+      ['enhance academic performance', 'cải thiện thành tích học tập'],
+      ['promote critical thinking', 'thúc đẩy tư duy phản biện'],
+      ['foster creativity', 'nuôi dưỡng sự sáng tạo'],
+      ['encourage independent learning', 'khuyến khích tự học'],
+      ['develop practical skills', 'phát triển kỹ năng thực tiễn'],
+      ["broaden one's horizons", 'mở mang kiến thức'],
+      ['acquire knowledge', 'tiếp nhận kiến thức'], ['master a subject', 'thành thạo một môn học'],
+      ['keep up with technological advances', 'theo kịp tiến bộ công nghệ'],
+      ['pursue higher education', 'theo học bậc cao hơn'], ['excel academically', 'học xuất sắc'],
+      ['perform well academically', 'đạt kết quả học tập tốt'],
+      ['achieve academic success', 'đạt thành công trong học tập'],
+      ['fall behind classmates', 'tụt lại phía sau bạn học'],
+      ['meet academic requirements', 'đáp ứng yêu cầu học tập'],
+      ['highly qualified teachers', 'giáo viên có trình độ cao'],
+      ['experienced educators', 'các nhà giáo giàu kinh nghiệm'],
+      ['inspire students', 'truyền cảm hứng cho học sinh'],
+      ['adopt innovative teaching methods', 'áp dụng phương pháp giảng dạy sáng tạo'],
+      ['provide constructive feedback', 'đưa ra phản hồi mang tính xây dựng'],
+      ["tailor lessons to students' needs", 'điều chỉnh bài học phù hợp với nhu cầu học sinh'],
+      ["assess students' progress", 'đánh giá sự tiến bộ của học sinh'],
+      ['integrate technology into education', 'tích hợp công nghệ vào giáo dục'],
+      ['digital learning platforms', 'nền tảng học tập số'],
+      ['educational software', 'phần mềm giáo dục'],
+      ['virtual classrooms', 'lớp học trực tuyến'],
+      ['interactive learning', 'học tập tương tác'],
+      ['AI-powered learning tools', 'công cụ học tập ứng dụng AI'],
+      ['go to university', 'đi học đại học'], ['attend university', 'theo học đại học'],
+      ['study at university', 'học tại trường đại học'], ['pursue a degree', 'theo đuổi bằng cấp'],
+      ['obtain a university degree', 'có bằng đại học'], ["earn a bachelor's degree", 'lấy bằng cử nhân'],
+      ['complete a degree', 'hoàn thành bằng cấp'], ['graduate from university', 'tốt nghiệp đại học'],
+      ['drop out of university', 'bỏ học đại học'], ['get into university', 'vào được đại học'],
+      ['gain admission to university', 'được nhận vào đại học'],
+      ['teacher', 'giáo viên'], ['student', 'học sinh'], ['class', 'lớp học'], ['lesson', 'bài học'],
+      ['homework', 'bài tập về nhà'], ['exam', 'kỳ thi'], ['test', 'bài kiểm tra'], ['pencil', 'bút chì'],
+      ['pen', 'cây bút'], ['notebook', 'quyển vở'], ['classroom', 'phòng học'], ['library', 'thư viện'],
+      ['university', 'trường đại học'], ['learn', 'học'], ['study', 'học bài'], ['teach', 'dạy học'],
+      ['read', 'đọc'], ['write', 'viết'], ['answer', 'câu trả lời'], ['question', 'câu hỏi'],
+      ['grade', 'điểm số'], ['mistake', 'lỗi sai'], ['dictionary', 'từ điển'], ['knowledge', 'kiến thức']
+    ]},
+    job: { name: 'Job', words: [
+      ['accountant', 'kế toán'], ['architect', 'kiến trúc sư'], ['engineer', 'kỹ sư'], ['doctor', 'bác sĩ'],
+      ['nurse', 'y tá'], ['dentist', 'nha sĩ'], ['pharmacist', 'dược sĩ'], ['surgeon', 'bác sĩ phẫu thuật'],
+      ['vet', 'bác sĩ thú y'], ['lawyer', 'luật sư'], ['judge', 'thẩm phán'], ['journalist', 'nhà báo'],
+      ['scientist', 'nhà khoa học'], ['economist', 'nhà kinh tế học'], ['psychologist', 'nhà tâm lý học'],
+      ['pilot', 'phi công'], ['flight attendant', 'tiếp viên hàng không'], ['driver', 'tài xế'],
+      ['chef', 'đầu bếp'], ['waiter', 'bồi bàn'], ['cashier', 'thu ngân'], ['receptionist', 'lễ tân'],
+      ['secretary', 'thư ký'], ['salesperson', 'nhân viên bán hàng'], ['consultant', 'chuyên viên tư vấn'],
+      ['electrician', 'thợ điện'], ['plumber', 'thợ ống nước'], ['mechanic', 'thợ máy'], ['carpenter', 'thợ mộc'],
+      ['farmer', 'nông dân'], ['fisherman', 'ngư dân'], ['firefighter', 'lính cứu hỏa'], ['police officer', 'cảnh sát'],
+      ['programmer', 'lập trình viên'], ['designer', 'nhà thiết kế'], ['artist', 'họa sĩ'], ['musician', 'nhạc sĩ'],
+      ['photographer', 'nhiếp ảnh gia'], ['translator', 'biên dịch viên'], ['interpreter', 'phiên dịch viên'],
+      ['tour guide', 'hướng dẫn viên du lịch'], ['manager', 'quản lý'], ['supervisor', 'người giám sát'],
+      ['colleague', 'đồng nghiệp'], ['freelancer', 'người làm tự do'], ['self-employed', 'tự kinh doanh'],
+      ['promotion', 'sự thăng tiến'], ['permanent', 'dài hạn'], ['temporary', 'tạm thời'], ['shift', 'ca làm việc'],
+      ['climb the career ladder', 'thăng tiến trong sự nghiệp'], ['full-time', 'toàn thời gian'], ['part-time', 'bán thời gian'],
+      ['overtime', 'làm thêm giờ'], ['salary', 'tiền lương'], ['wage', 'tiền công'], ['bonus', 'tiền thưởng'],
+      ['fringe benefits', 'phúc lợi'], ['workload', 'khối lượng công việc'], ['deadline', 'hạn chót'],
+      ['commute', 'đi làm hằng ngày'], ['work from home', 'làm việc tại nhà'], ['work-life balance', 'cân bằng công việc và cuộc sống'],
+      ['job satisfaction', 'sự hài lòng trong công việc'], ['job security', 'sự ổn định công việc'],
+      ['career prospects', 'triển vọng nghề nghiệp'], ['job market', 'thị trường việc làm'],
+      ['apply for a job', 'nộp đơn xin việc'], ['applicant', 'ứng viên'], ['interview', 'buổi phỏng vấn'],
+      ['recruit', 'tuyển dụng'], ['resign', 'từ chức'], ['retire', 'nghỉ hưu'], ['dismiss', 'sa thải'],
+      ['unemployed', 'thất nghiệp'], ['earn a living', 'kiếm sống'], ['gain work experience', 'tích lũy kinh nghiệm làm việc'],
+      ['demanding', 'đòi hỏi cao'], ['stressful', 'căng thẳng'], ['rewarding', 'đáng làm'],
+      ['job', 'công việc'], ['work', 'làm việc'], ['worker', 'công nhân'], ['office', 'văn phòng'],
+      ['company', 'doanh nghiệp'], ['boss', 'sếp'], ['cook', 'người nấu ăn'], ['singer', 'ca sĩ'],
+      ['actor', 'diễn viên'], ['dancer', 'vũ công'], ['baker', 'thợ làm bánh'], ['builder', 'thợ xây'],
+      ['shop assistant', 'nhân viên cửa hàng'], ['businessman', 'nhà kinh doanh'], ['money', 'tiền bạc'], ['meeting', 'cuộc họp'],
+      ['busy', 'bận rộn'], ['postman', 'người đưa thư'], ['barber', 'thợ cắt tóc'], ['tailor', 'thợ may'],
+      ['gardener', 'người làm vườn'], ['cleaner', 'người dọn dẹp'], ['security guard', 'nhân viên bảo vệ']
+    ]},
+    animals: { name: 'Động vật', words: [
+      ['dog', 'con chó'], ['cat', 'con mèo'], ['bird', 'con chim'], ['fish', 'con cá'],
+      ['horse', 'con ngựa'], ['rabbit', 'con thỏ'], ['elephant', 'con voi'], ['monkey', 'con khỉ'],
+      ['tiger', 'con hổ'], ['snake', 'con rắn'], ['duck', 'con vịt'], ['chicken', 'con gà'],
+      ['pig', 'con heo'], ['cow', 'con bò'], ['turtle', 'con rùa'], ['frog', 'con ếch'],
+      ['prey', 'con mồi'], ['predator', 'động vật săn mồi'], ['poach', 'săn trộm'], ['illegal hunting', 'săn bắt trái phép'],
+      ['conservation', 'bảo tồn động vật'], ['extinct', 'tuyệt chủng'], ['play a vital role', 'đóng vai trò thiết yếu'],
+      ['endangered species', 'loài có nguy cơ tuyệt chủng'], ['captive', 'bị nuôi nhốt'], ['captivity', 'sự giam cầm'],
+      ['release', 'thả về tự nhiên'], ['reintroduce animals into the wild', 'tái thả động vật về tự nhiên'],
+      ['breed', 'nhân giống'], ['biodiversity', 'đa dạng sinh học'],
+      ['lion', 'sư tử'], ['bear', 'con gấu'], ['sheep', 'con cừu'], ['wolf', 'con sói'],
+      ['butterfly', 'con bướm'], ['bee', 'con ong'], ['spider', 'con nhện'], ['whale', 'cá voi'],
+      ['wildlife', 'động vật hoang dã'], ['species', 'loài'], ['mammal', 'động vật có vú'], ['reptile', 'loài bò sát'],
+      ['insect', 'côn trùng'], ['herd', 'bầy gia súc'], ['flock', 'đàn chim'], ['migration', 'sự di cư của loài vật'],
+      ['hibernate', 'ngủ đông'], ['nest', 'tổ chim'], ['wing', 'cánh'], ['tail', 'cái đuôi'],
+      ['fur', 'bộ lông thú'], ['claw', 'móng vuốt'], ['hunt', 'đi săn'], ['cage', 'cái lồng'],
+      ['zoo', 'sở thú'], ['pet', 'thú cưng'], ['domestic', 'thuần hóa'], ['wild', 'hoang dã'],
+      ['ferocious', 'hung dữ'], ['nocturnal', 'hoạt động về đêm'], ['carnivore', 'động vật ăn thịt'], ['herbivore', 'động vật ăn cỏ'],
+      ['adapt', 'thích nghi'], ['survive', 'sống sót']
+    ]},
+    food: { name: 'Đồ ăn', words: [
+      ['rice', 'cơm'], ['bread', 'bánh mì'], ['egg', 'quả trứng'], ['milk', 'sữa'],
+      ['apple', 'quả táo'], ['banana', 'quả chuối'], ['coffee', 'cà phê'], ['tea', 'trà'],
+      ['soup', 'món súp'], ['noodles', 'mì sợi'], ['beef', 'thịt bò'], ['sugar', 'đường'],
+      ['salt', 'muối'], ['cheese', 'phô mai'], ['orange', 'quả cam'], ['cake', 'bánh ngọt'],
+      ['fruit', 'trái cây'], ['vegetable', 'rau củ'], ['meat', 'thịt'], ['juice', 'nước ép'],
+      ['butter', 'bơ'], ['breakfast', 'bữa sáng'], ['lunch', 'bữa trưa'], ['dinner', 'bữa tối'],
+      ['hungry', 'đói bụng'], ['thirsty', 'khát nước'], ['ingredient', 'nguyên liệu'], ['recipe', 'công thức nấu ăn'],
+      ['cuisine', 'ẩm thực'], ['delicious', 'ngon tuyệt'], ['tasty', 'ngon miệng'], ['spicy', 'cay nồng'],
+      ['bitter', 'đắng'], ['sour', 'chua'], ['sweet', 'ngọt'], ['fresh', 'tươi'],
+      ['raw', 'sống'], ['roast', 'nướng lò'], ['fry', 'chiên rán'], ['boil', 'luộc'],
+      ['grill', 'nướng vỉ'], ['bake', 'nướng bánh'], ['chop', 'thái nhỏ'], ['stir', 'khuấy'],
+      ['season', 'nêm gia vị'], ['flavour', 'hương vị'], ['appetite', 'cảm giác thèm ăn'], ['leftovers', 'đồ ăn thừa'],
+      ['takeaway', 'đồ ăn mang đi'], ['portion', 'khẩu phần'], ['vegetarian', 'người ăn chay'], ['seafood', 'hải sản'],
+      ['dairy', 'sản phẩm từ sữa'], ['grocery', 'hàng tạp hóa'], ['cereal', 'ngũ cốc'], ['dessert', 'món tráng miệng'],
+      ['beverage', 'đồ uống']
+    ]},
+    travel: { name: 'Du lịch', words: [
+      ['airport', 'sân bay'], ['ticket', 'vé'], ['hotel', 'khách sạn'], ['passport', 'hộ chiếu'],
+      ['luggage', 'hành lý'], ['beach', 'bãi biển'], ['mountain', 'ngọn núi'], ['map', 'bản đồ'],
+      ['bridge', 'cây cầu'], ['market', 'chợ'], ['station', 'nhà ga'], ['journey', 'chuyến đi'],
+      ['island', 'hòn đảo'], ['tourist', 'khách du lịch'], ['street', 'con đường'], ['taxi', 'xe taxi'],
+      ['trip', 'chuyến dạo chơi'], ['plane', 'máy bay'], ['train', 'tàu hỏa'], ['bus', 'xe buýt'],
+      ['car', 'xe hơi'], ['holiday', 'kỳ nghỉ'], ['itinerary', 'lịch trình'], ['sightseeing', 'tham quan'],
+      ['souvenir', 'quà lưu niệm'], ['accommodation', 'chỗ ở'], ['reservation', 'sự đặt chỗ'], ['check in', 'làm thủ tục nhận phòng'],
+      ['departure', 'chuyến khởi hành'], ['arrival', 'sự đến nơi'], ['customs', 'hải quan'], ['visa', 'thị thực'],
+      ['board', 'lên tàu xe'], ['backpack', 'ba lô'], ['guidebook', 'sách hướng dẫn du lịch'], ['landmark', 'địa danh nổi tiếng'],
+      ['resort', 'khu nghỉ dưỡng'], ['cruise', 'chuyến du thuyền'], ['excursion', 'chuyến tham quan ngắn'], ['abroad', 'ở nước ngoài'],
+      ['foreign', 'thuộc nước ngoài'], ['currency', 'tiền tệ'], ['exchange rate', 'tỷ giá hối đoái'], ['budget', 'ngân sách'],
+      ['peak season', 'mùa cao điểm'], ['crowded', 'đông đúc'], ['scenic', 'đẹp như tranh'], ['exotic', 'kỳ lạ hấp dẫn'],
+      ['adventurous', 'ưa mạo hiểm'], ['explore', 'khám phá nơi mới'], ['wander', 'đi lang thang'], ['hitchhike', 'đi nhờ xe'],
+      ['jet lag', 'mệt mỏi do lệch múi giờ'], ['travel agency', 'công ty du lịch'], ['package tour', 'tour trọn gói'], ['local cuisine', 'ẩm thực địa phương']
+    ]},
+    crime: { name: 'Crime', words: [
+      ['crime', 'tội phạm'], ['criminal', 'kẻ phạm tội'], ['theft', 'vụ trộm cắp'], ['burglar', 'kẻ trộm đột nhập'],
+      ['robbery', 'vụ cướp'], ['murder', 'vụ giết người'], ['fraud', 'gian lận'], ['bribery', 'hối lộ'],
+      ['corruption', 'tham nhũng'], ['kidnap', 'bắt cóc'], ['smuggle', 'buôn lậu'], ['drug trafficking', 'buôn bán ma túy'],
+      ['cybercrime', 'tội phạm mạng'], ['vandalism', 'hành vi phá hoại'], ['shoplifting', 'trộm đồ trong cửa hàng'], ['juvenile delinquency', 'phạm pháp ở trẻ vị thành niên'],
+      ['suspect', 'nghi phạm'], ['witness', 'nhân chứng'], ['victim', 'nạn nhân'], ['evidence', 'bằng chứng'],
+      ['arrest', 'bắt giam'], ['accuse', 'buộc tội'], ['convict', 'kết án'], ['investigate', 'điều tra'],
+      ['steal', 'ăn trộm'], ['hack', 'đột nhập hệ thống'], ['trial', 'phiên tòa'], ['verdict', 'phán quyết'],
+      ['sentence', 'bản án'], ['fine', 'tiền phạt'], ['prison', 'nhà tù'], ['imprisonment', 'sự bỏ tù'],
+      ['punish', 'trừng phạt'], ['deter', 'răn đe'], ['deterrent', 'biện pháp răn đe'], ['rehabilitate', 'cải tạo'],
+      ['death penalty', 'án tử hình'], ['community service', 'lao động công ích'], ['commit a crime', 'phạm tội'], ['break the law', 'vi phạm pháp luật'],
+      ['law-abiding', 'tuân thủ pháp luật'], ['law enforcement', 'thực thi pháp luật'], ['crime rate', 'tỷ lệ tội phạm'], ['reduce crime', 'giảm tội phạm'],
+      ['security camera', 'camera an ninh'], ['violent', 'bạo lực'], ['innocent', 'vô tội'], ['guilty', 'có tội'],
+      ['dangerous', 'nguy hiểm'], ['strict', 'nghiêm khắc'], ['lenient', 'khoan dung'], ['harsh', 'khắc nghiệt'],
+      ['police', 'công an'], ['thief', 'tên trộm'], ['rob', 'cướp giật'], ['kill', 'giết chết'],
+      ['gun', 'khẩu súng'], ['knife', 'con dao'], ['law', 'luật pháp'], ['illegal', 'bất hợp pháp'],
+      ['danger', 'mối nguy hiểm'], ['safe', 'an toàn'], ['fight', 'đánh nhau'], ['bad', 'xấu xa'],
+      ['prisoner', 'tù nhân'], ['lock', 'khóa lại'], ['lie', 'nói dối'], ['cheat', 'lừa gạt'],
+      ['report', 'trình báo'], ['rule', 'quy tắc'], ['court', 'tòa án'], ['fear', 'nỗi sợ hãi'],
+      ['angry', 'tức giận'], ['afraid', 'sợ hãi']
+    ]},
+    technology: { name: 'Technology', words: [
+      ['technology', 'công nghệ'], ['invention', 'phát minh'], ['innovation', 'sự đổi mới'], ['breakthrough', 'bước đột phá'],
+      ['software', 'phần mềm'], ['hardware', 'phần cứng'], ['application', 'ứng dụng'], ['website', 'trang web'],
+      ['search engine', 'công cụ tìm kiếm'], ['password', 'mật khẩu'], ['data', 'dữ liệu'], ['database', 'cơ sở dữ liệu'],
+      ['cloud storage', 'lưu trữ đám mây'], ['artificial intelligence', 'trí tuệ nhân tạo'], ['robot', 'người máy'], ['automation', 'tự động hóa'],
+      ['gadget', 'đồ công nghệ nhỏ'], ['smartphone', 'điện thoại thông minh'], ['laptop', 'máy tính xách tay'], ['screen', 'màn hình'],
+      ['battery', 'pin'], ['drone', 'máy bay không người lái'], ['electric vehicle', 'xe điện'], ['social media', 'mạng xã hội'],
+      ['download', 'tải xuống'], ['upload', 'tải lên'], ['install', 'cài đặt'], ['update', 'cập nhật'],
+      ['browse', 'duyệt web'], ['charge', 'sạc pin'], ['connect', 'kết nối'], ['stream', 'phát trực tuyến'],
+      ['program', 'lập trình'], ['revolutionize', 'cách mạng hóa'], ['rely on', 'phụ thuộc vào'], ['crash', 'bị treo máy'],
+      ['digital', 'kỹ thuật số'], ['virtual', 'ảo'], ['online', 'trực tuyến'], ['wireless', 'không dây'],
+      ['outdated', 'lỗi thời'], ['user-friendly', 'thân thiện với người dùng'], ['reliable', 'đáng tin cậy'], ['advanced', 'tiên tiến'],
+      ['cutting-edge', 'tối tân'], ['high-tech', 'công nghệ cao'], ['addicted', 'nghiện'], ['technical', 'thuộc kỹ thuật'],
+      ['malfunction', 'trục trặc'], ['cyber security', 'an ninh mạng'], ['privacy', 'quyền riêng tư'], ['surveillance', 'sự giám sát'],
+      ['computer', 'máy tính'], ['phone', 'điện thoại'], ['internet', 'mạng internet'], ['email', 'thư điện tử'],
+      ['camera', 'máy ảnh'], ['television', 'ti vi'], ['radio', 'đài radio'], ['machine', 'cỗ máy'],
+      ['electricity', 'điện năng'], ['keyboard', 'bàn phím'], ['mouse', 'con chuột máy tính'], ['click', 'nhấp chuột'],
+      ['type', 'gõ phím'], ['game', 'trò chơi điện tử'], ['video', 'đoạn video'], ['message', 'tin nhắn'],
+      ['call', 'gọi điện'], ['turn on', 'bật lên'], ['turn off', 'tắt đi'], ['plug', 'phích cắm'],
+      ['wifi', 'mạng wifi'], ['text', 'nhắn tin'], ['send', 'gửi đi'], ['save', 'lưu lại'],
+      ['delete', 'xóa bỏ'], ['printer', 'máy in'], ['headphones', 'tai nghe'], ['speaker', 'loa'],
+      ['modern', 'hiện đại'], ['useful', 'hữu ích'], ['electric', 'chạy bằng điện']
+    ]},
+    health: { name: 'Health', words: [
+      ['health', 'sức khỏe'], ['illness', 'bệnh tật'], ['disease', 'căn bệnh'], ['symptom', 'triệu chứng'],
+      ['infection', 'sự nhiễm trùng'], ['virus', 'vi-rút'], ['vaccine', 'vắc-xin'], ['treatment', 'phương pháp điều trị'],
+      ['medicine', 'thuốc'], ['prescription', 'đơn thuốc'], ['surgery', 'ca phẫu thuật'], ['injury', 'chấn thương'],
+      ['allergy', 'dị ứng'], ['headache', 'cơn đau đầu'], ['fever', 'cơn sốt'], ['depression', 'chứng trầm cảm'],
+      ['anxiety', 'chứng lo âu'], ['stress', 'áp lực tinh thần'], ['mental health', 'sức khỏe tinh thần'], ['nutrition', 'dinh dưỡng'],
+      ['balanced diet', 'chế độ ăn cân bằng'], ['junk food', 'đồ ăn vặt không lành mạnh'], ['fast food', 'đồ ăn nhanh'], ['sedentary lifestyle', 'lối sống ít vận động'],
+      ['fitness', 'thể lực'], ['workout', 'buổi tập luyện'], ['obesity', 'bệnh béo phì'], ['addiction', 'sự nghiện ngập'],
+      ['life expectancy', 'tuổi thọ'], ['healthcare system', 'hệ thống y tế'], ['hospital', 'bệnh viện'], ['ambulance', 'xe cứu thương'],
+      ['immune system', 'hệ miễn dịch'], ['check-up', 'buổi khám sức khỏe'], ['sleep deprivation', 'tình trạng thiếu ngủ'], ['wellbeing', 'sự an lạc'],
+      ['cure', 'chữa khỏi'], ['recover', 'hồi phục'], ['diagnose', 'chẩn đoán'], ['exercise', 'tập thể dục'],
+      ['lose weight', 'giảm cân'], ['quit smoking', 'bỏ thuốc lá'], ['suffer from', 'chịu đựng bệnh'], ['sneeze', 'hắt hơi'],
+      ['chronic', 'mãn tính'], ['contagious', 'dễ lây'], ['harmful', 'có hại'], ['nutritious', 'bổ dưỡng'],
+      ['healthy', 'lành mạnh'], ['unhealthy', 'không lành mạnh'], ['overweight', 'thừa cân'], ['exhausted', 'kiệt sức'],
+      ['physical', 'thuộc thể chất'], ['weak', 'yếu ớt'],
+      ['sick', 'ốm yếu'], ['ill', 'đau ốm'], ['pain', 'cơn đau'], ['hurt', 'làm đau'],
+      ['cold', 'cảm lạnh'], ['flu', 'bệnh cúm'], ['toothache', 'đau răng'], ['stomach', 'dạ dày'],
+      ['heart', 'trái tim'], ['blood', 'máu'], ['bone', 'xương'], ['skin', 'da'],
+      ['tooth', 'răng'], ['eye', 'mắt'], ['sleep', 'giấc ngủ'], ['rest', 'nghỉ ngơi'],
+      ['pill', 'viên thuốc'], ['bandage', 'băng gạc'], ['clinic', 'phòng khám'], ['wash', 'rửa'],
+      ['clean', 'sạch sẽ'], ['dirty', 'bẩn thỉu'], ['fit', 'cân đối'], ['strong', 'khỏe mạnh'],
+      ['tired', 'mệt mỏi'], ['thin', 'gầy'], ['fat', 'mập'], ['body', 'cơ thể'],
+      ['head', 'cái đầu'], ['hand', 'bàn tay'], ['foot', 'bàn chân']
+    ]},
+    environment: { name: 'Environment', words: [
+      ['environment', 'môi trường'], ['pollution', 'ô nhiễm'], ['climate change', 'biến đổi khí hậu'], ['global warming', 'sự nóng lên toàn cầu'],
+      ['greenhouse gas', 'khí nhà kính'], ['carbon footprint', 'dấu chân carbon'], ['emissions', 'khí thải'], ['fossil fuels', 'nhiên liệu hóa thạch'],
+      ['renewable energy', 'năng lượng tái tạo'], ['solar power', 'năng lượng mặt trời'], ['wind turbine', 'tuabin gió'], ['waste', 'chất thải'],
+      ['landfill', 'bãi chôn lấp rác'], ['plastic', 'nhựa'], ['litter', 'xả rác'], ['deforestation', 'nạn phá rừng'],
+      ['drought', 'hạn hán'], ['flood', 'lũ lụt'], ['wildfire', 'cháy rừng'], ['natural resources', 'tài nguyên thiên nhiên'],
+      ['ecosystem', 'hệ sinh thái'], ['habitat', 'môi trường sống'], ['ozone layer', 'tầng ôzôn'], ['sea level', 'mực nước biển'],
+      ['extreme weather', 'thời tiết cực đoan'], ['air quality', 'chất lượng không khí'], ['smog', 'khói bụi'], ['planet', 'hành tinh'],
+      ['urbanisation', 'đô thị hóa'], ['public transport', 'phương tiện công cộng'], ['strict regulations', 'quy định nghiêm ngặt'], ['raise awareness', 'nâng cao nhận thức'],
+      ['pollute', 'làm ô nhiễm'], ['recycle', 'tái chế'], ['reuse', 'tái sử dụng'], ['reduce', 'giảm thiểu'],
+      ['conserve', 'tiết kiệm'], ['melt', 'tan chảy'], ['dispose of', 'vứt bỏ'], ['carpool', 'đi chung xe'],
+      ['ban', 'cấm'], ['cut down', 'chặt phá'], ['eco-friendly', 'thân thiện với môi trường'], ['toxic', 'độc hại'],
+      ['polluted', 'bị ô nhiễm'], ['organic', 'hữu cơ'], ['overpopulated', 'quá tải dân số'], ['natural', 'thuộc thiên nhiên'],
+      ['air', 'không khí'], ['river', 'dòng sông'], ['sea', 'biển cả'], ['forest', 'khu rừng'],
+      ['rain', 'cơn mưa'], ['weather', 'thời tiết'], ['snow', 'tuyết'], ['wind', 'gió'],
+      ['storm', 'cơn bão'], ['earth', 'trái đất'], ['nature', 'thiên nhiên'], ['garden', 'khu vườn'],
+      ['flower', 'bông hoa'], ['park', 'công viên'], ['rubbish', 'rác thải'], ['bin', 'thùng rác'],
+      ['bottle', 'chai lọ'], ['paper', 'giấy'], ['save water', 'tiết kiệm nước'], ['plant', 'thực vật'],
+      ['grow', 'mọc lên'], ['smoke', 'khói'], ['fire', 'ngọn lửa'], ['lake', 'hồ nước']
+    ]},
+    society: { name: 'Society', words: [
+      ['society', 'xã hội'], ['community', 'cộng đồng'], ['citizen', 'công dân'], ['neighbour', 'hàng xóm'],
+      ['poverty', 'sự nghèo đói'], ['inequality', 'sự bất bình đẳng'], ['unemployment', 'nạn thất nghiệp'], ['homeless', 'vô gia cư'],
+      ['immigrant', 'người nhập cư'], ['elderly', 'người cao tuổi'], ['ageing population', 'dân số già hóa'], ['birth rate', 'tỷ lệ sinh'],
+      ['gender equality', 'bình đẳng giới'], ['discrimination', 'sự phân biệt đối xử'], ['stereotype', 'định kiến'], ['prejudice', 'thành kiến'],
+      ['tradition', 'truyền thống'], ['custom', 'phong tục'], ['culture', 'văn hóa'], ['cultural heritage', 'di sản văn hóa'],
+      ['globalisation', 'toàn cầu hóa'], ['lifestyle', 'lối sống'], ['standard of living', 'mức sống'], ['living conditions', 'điều kiện sống'],
+      ['welfare', 'phúc lợi xã hội'], ['pension', 'lương hưu'], ['public services', 'dịch vụ công'], ['social issue', 'vấn đề xã hội'],
+      ['gap between rich and poor', 'khoảng cách giàu nghèo'], ['generation gap', 'khoảng cách thế hệ'], ['peer pressure', 'áp lực đồng trang lứa'], ['role model', 'hình mẫu'],
+      ['volunteer', 'tình nguyện viên'], ['harmony', 'sự hòa hợp'], ['conflict', 'xung đột'], ['migrate', 'di cư'],
+      ['cooperate', 'hợp tác'], ['support', 'hỗ trợ'], ['respect', 'tôn trọng'], ['raise money', 'gây quỹ'],
+      ['tolerant', 'bao dung'], ['responsible', 'có trách nhiệm'], ['selfish', 'ích kỷ'], ['unfair', 'bất công'],
+      ['vulnerable', 'dễ bị tổn thương'], ['disabled', 'khuyết tật'], ['urban', 'thuộc đô thị'], ['rural', 'thuộc nông thôn'],
+      ['affluent', 'sung túc'], ['equal', 'ngang bằng'],
+      ['people', 'con người'], ['man', 'người đàn ông'], ['woman', 'người phụ nữ'], ['child', 'đứa trẻ'],
+      ['young', 'trẻ tuổi'], ['town', 'thị trấn'], ['city', 'thành phố'], ['village', 'ngôi làng'],
+      ['country', 'đất nước'], ['language', 'ngôn ngữ'], ['help', 'giúp đỡ'], ['share', 'chia sẻ'],
+      ['kind', 'tốt bụng'], ['rich', 'giàu'], ['poor', 'nghèo'], ['festival', 'lễ hội'],
+      ['party', 'bữa tiệc'], ['friendship', 'tình bạn'], ['marry', 'kết hôn'], ['wedding', 'đám cưới'],
+      ['birthday', 'sinh nhật'], ['shop', 'cửa hàng']
+    ]},
+    personality: { name: 'Personality', words: [
+      ['friendly', 'thân thiện'], ['shy', 'nhút nhát'], ['funny', 'hài hước'], ['polite', 'lịch sự'],
+      ['rude', 'thô lỗ'], ['lazy', 'lười biếng'], ['clever', 'lanh lợi'], ['smart', 'thông minh'],
+      ['nice', 'dễ mến'], ['quiet', 'trầm lặng'], ['noisy', 'ồn ào'], ['brave', 'dũng cảm'],
+      ['careful', 'cẩn thận'], ['careless', 'cẩu thả'], ['calm', 'điềm tĩnh'], ['sad', 'buồn bã'],
+      ['cheerful', 'vui tươi'], ['mean', 'xấu tính'], ['hard-working', 'chăm chỉ'], ['talkative', 'nói nhiều'],
+      ['serious', 'nghiêm túc'], ['lovely', 'đáng yêu'], ['stupid', 'ngốc nghếch'], ['gentle', 'dịu dàng'],
+      ['proud', 'tự hào'], ['jealous', 'ghen tị'], ['open', 'cởi mở'], ['lonely', 'cô đơn'],
+      ['worried', 'lo âu'], ['bored', 'buồn chán'], ['excited', 'hào hứng'], ['nervous', 'hồi hộp'],
+      ['surprised', 'ngạc nhiên'], ['personality', 'tính cách'], ['character', 'nhân cách'], ['temper', 'tính khí'],
+      ['attitude', 'thái độ'], ['behaviour', 'hành vi'], ['manner', 'cách cư xử'], ['trait', 'nét tính cách'],
+      ['strength', 'điểm mạnh'], ['weakness', 'điểm yếu'], ['self-esteem', 'lòng tự trọng'], ['optimistic', 'lạc quan'],
+      ['pessimistic', 'bi quan'], ['reserved', 'kín đáo'], ['outgoing', 'hướng ngoại'], ['introvert', 'người hướng nội'],
+      ['extrovert', 'người hướng ngoại'], ['sociable', 'hòa đồng'], ['arrogant', 'kiêu ngạo'], ['humble', 'khiêm tốn'],
+      ['stubborn', 'bướng bỉnh'], ['mature', 'chín chắn'], ['immature', 'thiếu chín chắn'], ['sensitive', 'nhạy cảm'],
+      ['sympathetic', 'đồng cảm'], ['considerate', 'chu đáo'], ['thoughtful', 'sâu sắc'], ['determined', 'kiên quyết'],
+      ['persistent', 'kiên trì'], ['creative', 'sáng tạo'], ['imaginative', 'giàu trí tưởng tượng'], ['intelligent', 'sáng dạ'],
+      ['ignorant', 'thiếu hiểu biết'], ['naive', 'ngây thơ'], ['cunning', 'xảo quyệt'], ['loyal', 'trung thành'],
+      ['trustworthy', 'đáng tin'], ['dishonest', 'thiếu trung thực'], ['bad-tempered', 'dễ cáu'], ['easy-going', 'dễ tính'],
+      ['open-minded', 'tư duy cởi mở'], ['narrow-minded', 'hẹp hòi'], ['down-to-earth', 'thực tế khiêm nhường'], ['self-confident', 'tự tin vào bản thân'],
+      ['self-disciplined', 'có kỷ luật'], ['hot-headed', 'nóng nảy'], ['cooperative', 'biết hợp tác'], ['competitive', 'hiếu thắng'],
+      ['insecure', 'thiếu tự tin'], ['moody', 'thất thường'], ['impulsive', 'bốc đồng'], ['reckless', 'liều lĩnh'],
+      ['behave', 'cư xử'], ['get on with', 'hòa thuận với'], ['take after', 'giống người thân'], ['look up to', 'ngưỡng mộ'],
+      ['let down', 'làm thất vọng'], ['show off', 'khoe khoang']
+    ]},
+    custom: { name: 'Từ của bạn', words: [
+      ['divide', 'chia ra'], ['attend', 'tham dự'], ['theory', 'lý thuyết'], ['still', 'vẫn còn'],
+      ['regard', 'xem như'], ['entrepreneur', 'doanh nhân'], ['manufacture', 'sản xuất'], ['attraction', 'sự thu hút'],
+      ['native', 'bản xứ'], ['describe', 'mô tả'], ['predict', 'dự đoán'],
+      ['expert', 'chuyên gia'], ['balance', 'sự cân bằng'], ['tear', 'xé rách'], ['throw', 'ném'],
+      ['criticize', 'chỉ trích'], ['wealthy', 'giàu có'], ['automobile', 'ô tô'], ['queue', 'hàng đợi'],
+      ['integrate', 'hòa nhập'], ['capture', 'bắt giữ'], ['compete', 'cạnh tranh'],
+      ['differ', 'khác nhau'], ['contrast', 'sự tương phản'], ['against', 'chống lại'], ['wave', 'con sóng'],
+      ['conservation', 'sự bảo tồn'], ['career', 'sự nghiệp'], ['afford', 'đủ khả năng chi trả'],
+      ['photograph', 'bức ảnh'], ['offend', 'xúc phạm'], ['imagination', 'trí tưởng tượng'], ['measure', 'đo lường'],
+      ['force', 'sức mạnh'], ['encourage', 'khuyến khích'], ['damage', 'thiệt hại'], ['essential', 'thiết yếu'],
+      ['staff', 'nhân sự'], ['owner', 'chủ sở hữu'], ['the masses', 'quần chúng'], ['memorise', 'ghi nhớ'],
+      ['destination', 'điểm đến'], ['construct', 'xây dựng'], ['initial', 'ban đầu'],
+      ['harm', 'gây hại'], ['familiar', 'quen thuộc'], ['discover', 'khám phá'], ['function', 'chức năng'],
+      ['genetic', 'thuộc di truyền'], ['generous', 'hào phóng'], ['employee', 'người lao động'], ['phrase', 'cụm từ'],
+      ['socialise', 'giao lưu'], ['controversy', 'sự tranh cãi'], ['criticism', 'lời phê bình'],
+      ['prince', 'hoàng tử'], ['huge', 'khổng lồ'], ['identify', 'nhận ra'], ['grass', 'cỏ'],
+      ['diversity', 'sự đa dạng'], ['contribution', 'sự đóng góp'], ['employer', 'nhà tuyển dụng'],
+      ['pronunciation', 'cách phát âm'], ['enhance', 'nâng cao'], ['soldier', 'người lính'], ['maintain', 'duy trì'],
+      ['protect', 'bảo vệ'], ['pattern', 'mẫu hình'], ['perhaps', 'có lẽ'], ['guard', 'canh gác'],
+      ['population', 'dân số'], ['estimate', 'ước tính'], ['specific', 'cụ thể'], ['delay', 'sự trì hoãn'],
+      ['absorb', 'hấp thụ'], ['progress', 'tiến bộ'], ['expect', 'mong đợi'],
+      ['sudden', 'đột ngột'], ['propose', 'đề xuất'], ['pleasant', 'dễ chịu'], ['image', 'hình ảnh'],
+      ['release', 'phát hành'], ['donate', 'quyên góp'], ['addition', 'sự bổ sung'], ['cancellation', 'sự hủy bỏ'],
+      ['surround', 'bao quanh'], ['qualify', 'đủ điều kiện'], ['no longer', 'không còn nữa'],
+      ['sense', 'giác quan'], ['purpose', 'mục đích'], ['prevent', 'ngăn chặn'], ['immediate', 'ngay lập tức'],
+      ['eventual', 'cuối cùng'], ['charity', 'từ thiện'], ['cosmetics', 'mỹ phẩm'], ['frustrated', 'bực bội'],
+      ['flexible', 'linh hoạt'], ['employ', 'thuê mướn'], ['private', 'riêng tư'],
+      ['arrange', 'sắp xếp'], ['step', 'bước đi'], ['primary', 'chính yếu'], ['contribute', 'góp phần'],
+      ['division', 'sự phân chia'], ['innovative', 'đổi mới sáng tạo'], ['communicate', 'giao tiếp'],
+      ['observe', 'quan sát'], ['average', 'trung bình'], ['mission', 'nhiệm vụ']
+    ]}
+  };
+  var ALL = [];
+  Object.keys(TOPICS).forEach(function (k) { if (TOPICS[k].words) ALL = ALL.concat(TOPICS[k].words); });
+
+  /* ---------- Setup ---------- */
+  var stage = document.getElementById('stage');
+  var canvas = document.getElementById('cv');
+  var ctx = canvas.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var elScore = document.getElementById('score');
+  var elLevel = document.getElementById('level');
+  var elCombo = document.getElementById('combo');
+  var elLeft = document.getElementById('left');
+  var elWrong = document.getElementById('wrong');
+  var btnPause = document.getElementById('pause');
+  var btnMute = document.getElementById('mute');
+
+  var FD = '"Baloo 2","Be Vietnam Pro",system-ui,sans-serif';
+  var FB = '"Be Vietnam Pro",system-ui,sans-serif';
+  var rootStyle = getComputedStyle(document.documentElement);
+  var COL = {};
+  ['ink', 'ink-deep', 'chalk', 'chalk-dim', 'sun', 'mint', 'coral', 'wood'].forEach(function (k) {
+    COL[k] = rootStyle.getPropertyValue('--' + k).trim();
+  });
+  var reduce = false;
+  try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  var BEST_KEY = 'mua-tu-vung-best';
+  var LIM = 1.35;
+  var TARGET_WORDS = 3;   // at most 3 words falling at once
+  var GUN_SCALE = 0.7;    // smaller cannon = easier aiming
+
+  var W = 0, H = 0, BAR = 78, pivot = { x: 0, y: 0 };
+  function resize() {
+    var r = stage.getBoundingClientRect();
+    W = Math.max(200, r.width); H = Math.max(200, r.height);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    BAR = Math.round(Math.min(92, Math.max(70, H * 0.13)));
+    pivot.x = W / 2; pivot.y = H - BAR;
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+  window.addEventListener('resize', resize);
+  resize();
+  try { if (document.fonts && document.fonts.load) { document.fonts.load('600 20px "Baloo 2"'); document.fonts.load('400 14px "Be Vietnam Pro"'); } } catch (e) {}
+
+  /* ---------- State ---------- */
+  var state = 'menu';
+  var topicKey = 'all';
+  var pool = ALL;
+  var remaining = ALL.slice();
+  var words = [], bullets = [], parts = [], floats = [];
+  var missed = new Map();
+  var target = null;
+  var score = 0, level = 1, streak = 0, correctCount = 0, wrongCount = 0;
+  var demoT = 0, aim = 0, lastShot = -1, clock = 0, shake = 0, flash = 0, pop = 0;
+  var recoil = 0, muzzle = 0;
+  var lastSpawnAt = -10;
+  var keys = { l: false, r: false };
+  var best = 0;
+  try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) {}
+
+  function mult() { return 1 + Math.min(4, Math.floor(streak / 3)); }
+  function fontSize() { return Math.round(Math.max(17, Math.min(24, W / 24))); }
+  var SPEED_SCALE = 0.55; // words fall slower than before
+  function speedBase() { return SPEED_SCALE * Math.min(H * 0.22, H * (0.085 + 0.011 * (level - 1))); }
+  function spawnInterval() { return Math.max(0.7, 1.5 - 0.12 * (level - 1)); }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function poolFor(key) { return key === 'all' ? ALL : TOPICS[key].words; }
+
+  /* ---------- Sound ---------- */
+  var MUTE_KEY = 'mua-tu-vung-muted';
+  var AC = null, muted = false;
+  try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
+  function audio() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+    if (AC && AC.state === 'suspended') { try { AC.resume(); } catch (e) {} }
+    return AC;
+  }
+  function tone(freq, dur, type, vol, delay, slideTo) {
+    if (muted) return;
+    var a = audio();
+    if (!a) return;
+    var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+  var SFX = {
+    shoot: function () { tone(820, 0.1, 'square', 0.035, 0, 240); },
+    correct: function (tier) {
+      var notes = tier >= 3 ? [660, 880, 1320, 1760] : tier === 2 ? [660, 880, 1320] : [660, 880];
+      notes.forEach(function (f, i) { tone(f, 0.16, 'triangle', 0.13, i * 0.07); });
+    },
+    wrong: function () { tone(240, 0.32, 'sawtooth', 0.09, 0, 90); },
+    land: function () { tone(150, 0.38, 'sine', 0.2, 0, 45); tone(95, 0.2, 'square', 0.04, 0, 50); },
+    level: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.14, 'triangle', 0.12, 0.3 + i * 0.09); }); },
+    start: function () { tone(440, 0.1, 'triangle', 0.12, 0); tone(660, 0.16, 'triangle', 0.12, 0.09); },
+    click: function () { tone(520, 0.06, 'triangle', 0.08, 0); },
+    win: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, 0.18, 'triangle', 0.13, 0.25 + i * 0.11); }); }
+  };
+  function toggleMute() {
+    muted = !muted;
+    try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) {}
+    if (!muted) { audio(); SFX.click(); }
+    hud();
+  }
+
+  function hud() {
+    elScore.textContent = score;
+    elLevel.textContent = level;
+    elCombo.textContent = '×' + mult();
+    elLeft.textContent = remaining.length;
+    elLeft.classList.toggle('done', remaining.length === 0);
+    elWrong.textContent = wrongCount;
+    elWrong.style.color = wrongCount > 0 ? 'var(--coral)' : '';
+    btnPause.disabled = !(state === 'play' || state === 'pause');
+    btnPause.textContent = state === 'pause' ? 'Tiếp tục' : 'Tạm dừng';
+    btnMute.textContent = muted ? 'Âm: Tắt' : 'Âm: Bật';
+  }
+
+  /* ---------- Words ---------- */
+  // Places a word in the first of up to 3 vertical bands that has a comfortable
+  // horizontal slot. A word only needs to clear neighbours in its own band, so
+  // crowded tops cascade upward instead of overlapping.
+  function spawnWord(e, force) {
+    var fs = fontSize();
+    ctx.font = '600 ' + fs + 'px ' + FD;
+    var tw = ctx.measureText(e[0]).width;
+    var maxW = Math.max(90, W - 28);
+    var wfs = fs;
+    if (tw + 30 > maxW) {
+      wfs = Math.max(11, Math.floor(fs * (maxW - 30) / Math.max(1, tw)));
+      ctx.font = '600 ' + wfs + 'px ' + FD;
+      tw = ctx.measureText(e[0]).width;
+    }
+    var w = Math.ceil(tw) + 30, h = Math.max(26, wfs + 16);
+    var padX = 14, gapX = 64, bandPad = 64;   // min clear space between any two words (sideways or vertically)
+    var left = w / 2 + padX, right = W - w / 2 - padX;
+    var y0 = -h * 0.5;
+    var bestY = y0, bestX = W / 2, bestClear = -Infinity;
+
+    for (var b = 0; b < 4; b++) {
+      var newY = y0 - b * (h + bandPad + 28);
+      var neighbors = [];
+      for (var k = 0; k < words.length; k++) {
+        var o = words[k];
+        if (Math.abs(o.y - newY) < (o.h + h) / 2 + bandPad) neighbors.push(o);
+      }
+      var cx, clear;
+      if (right <= left) { cx = W / 2; clear = Infinity; }
+      else if (!neighbors.length) { cx = left + Math.random() * (right - left); clear = Infinity; }
+      else {
+        clear = -Infinity; cx = (left + right) / 2;
+        for (var t = 0; t < 80; t++) {
+          var cand = left + Math.random() * (right - left);
+          var c2 = Infinity;
+          for (var j = 0; j < neighbors.length; j++) {
+            var o2 = neighbors[j];
+            var need = (o2.w + w) / 2 + gapX;
+            var c = Math.abs(o2.x0 - cand) - need;
+            if (c < c2) c2 = c;
+          }
+          if (c2 > clear) { clear = c2; cx = cand; }
+          if (clear >= 0) break;
+        }
+      }
+      if (clear > bestClear) { bestClear = clear; bestY = newY; bestX = cx; }
+      if (clear >= 0) break;
+    }
+
+    if (bestClear < 0 && !force) return false;
+    words.push({
+      e: e, x0: bestX, x: bestX, y: bestY, w: w, h: h, fs: wfs,
+      vy: speedBase() * rand(0.96, 1.04), ph: Math.random() * 6.28
+    });
+    return true;
+  }
+
+  function pickEntry(src) {
+    var list = src || remaining;
+    var c = list.filter(function (e) { return !words.some(function (w) { return w.e === e || w.e[0] === e[0]; }); });
+    if (!c.length) return null;
+    return c[Math.floor(Math.random() * c.length)];
+  }
+
+  function visibleCount() {
+    var n = 0;
+    for (var i = 0; i < words.length; i++) if (words[i].y + words[i].h / 2 > 0) n++;
+    return n;
+  }
+
+  function retarget() {
+    if (words.length) {
+      target = words[Math.floor(Math.random() * words.length)].e;
+    } else {
+      var e = pickEntry();
+      if (e && spawnWord(e, true)) target = e;
+      else target = null;
+    }
+    pop = 1;
+  }
+
+  function manageSpawns() {
+    var n = words.length;   // count every word in play (including ones just above the screen)
+    if (n >= TARGET_WORDS) return;
+    var cd = n < 2 ? 0.2 : spawnInterval();
+    if (clock - lastSpawnAt < cd) return;
+    var e = pickEntry();
+    if (!e) return;
+    if (spawnWord(e, n < 2)) {
+      lastSpawnAt = clock;
+      if (!target) target = e;
+    } else {
+      lastSpawnAt = clock - cd + 0.25;
+    }
+  }
+
+  /* ---------- Effects ---------- */
+  function burst(x, y, color, n) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * 6.283, s = rand(80, 260);
+      parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, life: rand(0.4, 0.8), max: 0.8, r: rand(2, 5), c: color });
+    }
+  }
+  function floatText(x, y, text, color, size, life) {
+    floats.push({ x: x, y: y, text: text, color: color, size: size, life: life || 1.3 });
+  }
+
+  /* ---------- Game flow ---------- */
+  function miss() {
+    wrongCount++;
+    streak = 0;
+    shake = reduce ? 0 : 10;
+    flash = 0.4;
+    hud();
+  }
+
+  function hit(wd) {
+    var idx = words.indexOf(wd);
+    if (idx >= 0) words.splice(idx, 1);
+    if (wd.e === target) {
+      streak++;
+      var gain = 10 * mult();
+      score += gain; correctCount++;
+      SFX.correct(Math.min(3, 1 + Math.floor(streak / 3)));
+      burst(wd.x, wd.y, COL.mint, 16);
+      floatText(wd.x, wd.y - wd.h * 0.7, '+' + gain, COL.mint, 24);
+      floatText(wd.x, wd.y + wd.h * 0.9, wd.e[0] + ' = ' + wd.e[1], COL.chalk, 15);
+      var lv = 1 + Math.floor(correctCount / 6);
+      if (lv > level) { level = lv; floatText(W / 2, H * 0.3, 'Cấp ' + level, COL.sun, 36, 1.4); SFX.level(); }
+      remaining = remaining.filter(function (x) { return x !== wd.e; });
+      if (!remaining.length) { finish(); return; }
+      retarget();
+      hud();
+    } else {
+      missed.set(target[0], target); missed.set(wd.e[0], wd.e);
+      burst(wd.x, wd.y, COL.coral, 14);
+      SFX.wrong();
+      floatText(wd.x, wd.y + wd.h * 0.9, wd.e[0] + ' = ' + wd.e[1], COL.coral, 16, 1.8);
+      miss();
+    }
+  }
+  function landed(wd) {
+    missed.set(wd.e[0], wd.e);
+    burst(wd.x, pivot.y - 6, COL.coral, 14);
+    SFX.land();
+    floatText(wd.x, pivot.y - 28, 'Rơi mất! ' + wd.e[0] + ' = ' + wd.e[1], COL.coral, 16, 1.8);
+    miss();
+    if (state === 'play') retarget();
+  }
+  function startGame() {
+    pool = poolFor(topicKey);
+    remaining = pool.slice();
+    score = 0; level = 1; streak = 0; correctCount = 0; wrongCount = 0;
+    words = []; bullets = []; parts = []; floats = []; missed = new Map();
+    target = null; aim = 0; lastShot = -1; shake = 0; flash = 0;
+    recoil = 0; muzzle = 0;
+    state = 'play';
+    overlay.hidden = true;
+    audio(); SFX.start();
+    // Seed 3 words; multi-band placement staggers them so they never overlap.
+    var initN = TARGET_WORDS;
+    for (var i = 0; i < initN; i++) {
+      var e = pickEntry();
+      if (!e) break;
+      if (!spawnWord(e, i < 3)) break;
+    }
+    lastSpawnAt = clock;
+    retarget(); hud();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  function finish() {
+    var prev = best;
+    if (score > best) { best = score; try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {} }
+    state = 'over'; bullets = []; words = []; demoT = 0; target = null;
+    SFX.win();
+    showResult(score > prev && score > 0);
+    hud();
+  }
+  function pause() { if (state !== 'play') return; state = 'pause'; showPause(); hud(); }
+  function resume() {
+    if (state !== 'pause') return;
+    state = 'play'; overlay.hidden = true; hud();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  /* Muzzle sits at the pencil tip; both barrel offset and length are scaled by GUN_SCALE. */
+  function tipPos(a, withKick) {
+    var r = GUN_SCALE * (86 - (withKick ? recoil * 14 : 0));
+    return { x: pivot.x + r * Math.sin(a), y: pivot.y - 20 * GUN_SCALE - r * Math.cos(a) };
+  }
+
+  function fire() {
+    if (state !== 'play' || clock - lastShot < 0.18 || bullets.length > 8) return;
+    lastShot = clock;
+    var gx = Math.sin(aim), gy = -Math.cos(aim);
+    var tp = tipPos(aim, false);
+    bullets.push({ x: tp.x + gx * 14, y: tp.y + gy * 14, dx: gx, dy: gy, speed: Math.max(1000, H * 1.9) });
+    recoil = 1; muzzle = 1;
+    for (var k = 0; k < 8; k++) {
+      var sp = rand(60, 180), sa = rand(-0.55, 0.55);
+      parts.push({
+        x: tp.x + gx * 10, y: tp.y + gy * 10,
+        vx: (gx * Math.cos(sa) - gy * Math.sin(sa)) * sp,
+        vy: (gx * Math.sin(sa) + gy * Math.cos(sa)) * sp,
+        life: rand(0.3, 0.55), max: 0.55, r: rand(2.5, 6), c: COL['chalk-dim'], gr: -30
+      });
+    }
+    shake = Math.max(shake, reduce ? 0 : 2.5);
+    SFX.shoot();
+  }
+  function aimAt(p) {
+    var dx = p.x - pivot.x, dy = p.y - pivot.y;
+    var a = Math.atan2(dx, -dy);
+    if (dy > -12) a = dx >= 0 ? LIM : -LIM;
+    aim = Math.max(-LIM, Math.min(LIM, a));
+  }
+
+  /* ---------- Update ---------- */
+  function update(dt) {
+    if (state === 'pause') return;
+    clock += dt;
+    if (shake > 0) shake = Math.max(0, shake - dt * 40);
+    if (flash > 0) flash = Math.max(0, flash - dt * 1.6);
+    if (pop > 0) pop = Math.max(0, pop - dt * 4);
+    if (recoil > 0) recoil = Math.max(0, recoil - dt * 6);
+    if (muzzle > 0) muzzle = Math.max(0, muzzle - dt * 9);
+
+    if (state === 'play') {
+      aim = Math.max(-LIM, Math.min(LIM, aim + ((keys.r ? 1 : 0) - (keys.l ? 1 : 0)) * 2.2 * dt));
+      manageSpawns();
+    } else {
+      demoT -= dt;
+      if (demoT <= 0) {
+        if (words.length < 5) {
+          var de = pickEntry(ALL);
+          if (de && spawnWord(de, false)) demoT = 1.0;
+          else demoT = 0.5;
+        } else demoT = 0.8;
+      }
+    }
+
+    for (var i = words.length - 1; i >= 0; i--) {
+      var wd = words[i];
+      wd.vy = speedBase();   // all words share one speed so gaps never close
+      wd.y += wd.vy * dt;
+      wd.x = wd.x0 + (reduce ? 0 : Math.sin(clock * 1.3 + wd.ph) * 3);
+      wd.x = Math.max(wd.w / 2 + 4, Math.min(W - wd.w / 2 - 4, wd.x));
+      if (wd.y + wd.h / 2 >= pivot.y) {
+        words.splice(i, 1);
+        if (state === 'play' && wd.e === target) landed(wd);
+        else if (state === 'play') burst(wd.x, pivot.y - 6, COL['chalk-dim'], 5);
+      }
+    }
+
+    for (var b = bullets.length - 1; b >= 0; b--) {
+      var bl = bullets[b], dead = false;
+      var dist = bl.speed * dt, steps = Math.max(1, Math.ceil(dist / 10)), sd = dist / steps;
+      for (var s = 0; s < steps && !dead; s++) {
+        bl.x += bl.dx * sd; bl.y += bl.dy * sd;
+        if (bl.x < -20 || bl.x > W + 20 || bl.y < -30) { dead = true; break; }
+        for (var j = 0; j < words.length; j++) {
+          var o = words[j];
+          if (Math.abs(bl.x - o.x) < o.w / 2 + 4 && Math.abs(bl.y - o.y) < o.h / 2 + 4) { dead = true; hit(o); break; }
+        }
+        if (state !== 'play') dead = true;
+      }
+      if (dead) bullets.splice(b, 1);
+    }
+
+    for (var p = parts.length - 1; p >= 0; p--) {
+      var pt = parts[p];
+      pt.life -= dt; pt.vy += (pt.gr === undefined ? 520 : pt.gr) * dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+      if (pt.life <= 0) parts.splice(p, 1);
+    }
+    for (var f = floats.length - 1; f >= 0; f--) {
+      floats[f].life -= dt; floats[f].y -= 28 * dt;
+      if (floats[f].life <= 0) floats.splice(f, 1);
+    }
+  }
+
+  /* ---------- Draw ---------- */
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawCannon(playing) {
+    var a = playing ? aim : Math.sin(clock * 1.1) * 0.18;
+    var kick = recoil * 14;
+    var cy = pivot.y - 20;               // turret centre
+    var pulse = reduce ? 0.5 : 0.5 + 0.5 * Math.sin(clock * 3);
+
+    // Scale everything about the pivot so the blaster stays anchored but smaller.
+    ctx.save();
+    ctx.translate(pivot.x, pivot.y);
+    ctx.scale(GUN_SCALE, GUN_SCALE);
+    ctx.translate(-pivot.x, -pivot.y);
+
+    // ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(pivot.x, pivot.y + 3, 62, 9, 0, 0, 6.283); ctx.fill();
+    ctx.restore();
+
+    // base plate
+    var bgd = ctx.createLinearGradient(0, pivot.y - 22, 0, pivot.y);
+    bgd.addColorStop(0, '#cfd9d3');
+    bgd.addColorStop(0.5, '#8fa39b');
+    bgd.addColorStop(1, '#4f635c');
+    ctx.fillStyle = bgd;
+    ctx.beginPath();
+    ctx.moveTo(pivot.x - 60, pivot.y);
+    ctx.lineTo(pivot.x - 46, pivot.y - 20);
+    ctx.lineTo(pivot.x + 46, pivot.y - 20);
+    ctx.lineTo(pivot.x + 60, pivot.y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = COL.coral;
+    ctx.beginPath();
+    ctx.moveTo(pivot.x - 55, pivot.y - 7);
+    ctx.lineTo(pivot.x - 51, pivot.y - 13);
+    ctx.lineTo(pivot.x + 51, pivot.y - 13);
+    ctx.lineTo(pivot.x + 55, pivot.y - 7);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    rr(pivot.x - 44, pivot.y - 19, 88, 2.5, 1.2); ctx.fill();
+    // side lights
+    for (var sd = -1; sd <= 1; sd += 2) {
+      ctx.fillStyle = COL.mint; ctx.globalAlpha = 0.55 + 0.45 * pulse;
+      ctx.beginPath(); ctx.arc(pivot.x + sd * 36, pivot.y - 5, 2.6, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // turret ring + dome
+    var ring = ctx.createLinearGradient(0, cy - 30, 0, cy + 14);
+    ring.addColorStop(0, '#e9efe9');
+    ring.addColorStop(1, '#5d726a');
+    ctx.fillStyle = ring;
+    ctx.beginPath(); ctx.arc(pivot.x, cy, 30, Math.PI, 0); ctx.closePath(); ctx.fill();
+    var dome = ctx.createRadialGradient(pivot.x - 8, cy - 14, 2, pivot.x, cy - 4, 26);
+    dome.addColorStop(0, '#2c4a50');
+    dome.addColorStop(1, '#0f2327');
+    ctx.fillStyle = dome;
+    ctx.beginPath(); ctx.arc(pivot.x, cy, 23, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = COL.sun; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.7 + 0.3 * pulse;
+    ctx.beginPath(); ctx.arc(pivot.x, cy, 26.5, Math.PI * 1.04, Math.PI * 1.96); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // glossy highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(pivot.x, cy, 17, Math.PI * 1.12, Math.PI * 1.45); ctx.stroke();
+    ctx.lineCap = 'butt';
+
+    // barrel (rotates with aim, kicks back on fire)
+    ctx.save();
+    ctx.translate(pivot.x, cy);
+    ctx.rotate(a);
+    ctx.translate(0, kick);
+
+    // rear collar
+    var cg = ctx.createLinearGradient(-15, 0, 15, 0);
+    cg.addColorStop(0, '#3d544f'); cg.addColorStop(0.5, '#a9bcb4'); cg.addColorStop(1, '#3d544f');
+    ctx.fillStyle = cg; rr(-15, -16, 30, 14, 4); ctx.fill();
+
+    // main tube
+    var tg = ctx.createLinearGradient(-11, 0, 11, 0);
+    tg.addColorStop(0, '#1b3a40');
+    tg.addColorStop(0.28, '#4f8b92');
+    tg.addColorStop(0.5, '#b9ece3');
+    tg.addColorStop(0.72, '#3f7a82');
+    tg.addColorStop(1, '#12292e');
+    ctx.fillStyle = tg; rr(-11, -66, 22, 54, 4); ctx.fill();
+
+    // glowing energy coils
+    var glow = 0.45 + 0.4 * pulse + 0.5 * muzzle;
+    ctx.fillStyle = 'rgba(127,224,184,' + Math.min(1, glow) + ')';
+    for (var cI = 0; cI < 3; cI++) rr(-11, -58 + cI * 15, 22, 3.2, 1.6), ctx.fill();
+
+    // sun rings
+    var rg = ctx.createLinearGradient(-14, 0, 14, 0);
+    rg.addColorStop(0, '#b3811f'); rg.addColorStop(0.5, '#fff1c7'); rg.addColorStop(1, '#b3811f');
+    ctx.fillStyle = rg;
+    rr(-14, -30, 28, 5, 2); ctx.fill();
+    rr(-14, -64, 28, 5, 2); ctx.fill();
+
+    // muzzle housing
+    var mg = ctx.createLinearGradient(-15, 0, 15, 0);
+    mg.addColorStop(0, '#b73e34'); mg.addColorStop(0.45, '#ff9a8c'); mg.addColorStop(1, '#b73e34');
+    ctx.fillStyle = mg;
+    ctx.beginPath();
+    ctx.moveTo(-12, -68); ctx.lineTo(12, -68); ctx.lineTo(16, -80); ctx.lineTo(-16, -80);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#0a1b1f';
+    rr(-8, -84, 16, 6, 3); ctx.fill();
+
+    // tip orb + muzzle flash (barrel space, follows aim)
+    var tx = 0, ty = -86;
+    var glowR = Math.max(4, 8 + pulse * 2 + 18 * muzzle);
+    var gg = ctx.createRadialGradient(tx, ty, 0, tx, ty, glowR);
+    gg.addColorStop(0, 'rgba(255,251,236,' + (0.9 + 0.1 * muzzle) + ')');
+    gg.addColorStop(0.4, 'rgba(255,209,102,' + (0.6 + 0.4 * muzzle) + ')');
+    gg.addColorStop(1, 'rgba(127,224,184,0)');
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(tx, ty, glowR, 0, 6.283); ctx.fill();
+
+    if (muzzle > 0.02) {
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.globalAlpha = muzzle;
+      ctx.fillStyle = COL.sun;
+      for (var k = 0; k < 8; k++) {
+        var ang = -Math.PI / 2 + (k - 3.5) * 0.36;
+        var len = (26 + 14 * (k % 2)) * muzzle;
+        ctx.save(); ctx.rotate(ang + Math.PI / 2);
+        ctx.beginPath(); ctx.moveTo(-3, -4); ctx.lineTo(0, -len); ctx.lineTo(3, -4); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = 'rgba(255,251,236,0.95)';
+      ctx.beginPath(); ctx.arc(0, 0, 5 + 5 * muzzle, 0, 6.283); ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore(); // barrel
+    ctx.restore(); // scale
+  }
+
+  function draw() {
+    ctx.save();
+    ctx.fillStyle = COL.ink; ctx.fillRect(0, 0, W, H);
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+    ctx.lineWidth = 1; ctx.strokeStyle = COL.chalk; ctx.globalAlpha = 0.06;
+    var off = reduce ? 0 : (clock * 14) % 38;
+    for (var y = off - 38; y < H; y += 38) { ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); ctx.stroke(); }
+    ctx.globalAlpha = 0.14; ctx.strokeStyle = COL.coral;
+    ctx.beginPath(); ctx.moveTo(34.5, 0); ctx.lineTo(34.5, H); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    var vg = ctx.createRadialGradient(W / 2, H * 0.42, Math.min(W, H) * 0.18, W / 2, H * 0.42, Math.max(W, H) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.30)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = COL['ink-deep']; ctx.fillRect(-12, pivot.y, W + 24, BAR + 12);
+    ctx.strokeStyle = COL.coral; ctx.globalAlpha = 0.6; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(0, pivot.y); ctx.lineTo(W, pivot.y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+    var fs = fontSize();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = (state === 'play' || state === 'pause') ? 1 : 0.5;
+    for (var i = 0; i < words.length; i++) {
+      var wd = words[i], x = wd.x - wd.w / 2, yy = wd.y - wd.h / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; rr(x, yy + 4, wd.w, wd.h, 11); ctx.fill();
+      ctx.fillStyle = COL.chalk; rr(x, yy, wd.w, wd.h, 11); ctx.fill();
+      ctx.fillStyle = COL['ink-deep']; ctx.font = '600 ' + (wd.fs || fs) + 'px ' + FD;
+      ctx.fillText(wd.e[0], wd.x, wd.y + 2);
+    }
+    ctx.globalAlpha = 1;
+
+    var playing = state === 'play' || state === 'pause';
+    if (state === 'play') {
+      var gx = Math.sin(aim), gy = -Math.cos(aim);
+      var t0 = tipPos(aim, false);
+      ctx.strokeStyle = COL.sun; ctx.globalAlpha = 0.45; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.setLineDash([2, 10]);
+      ctx.beginPath();
+      ctx.moveTo(t0.x + gx * 12, t0.y + gy * 12);
+      ctx.lineTo(t0.x + gx * 180, t0.y + gy * 180);
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(t0.x + gx * 186, t0.y + gy * 186, 7, 0, 6.283); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    }
+    drawCannon(playing);
+
+    for (var b = 0; b < bullets.length; b++) {
+      var bl = bullets[b];
+      var ang = Math.atan2(bl.dy, bl.dx);
+      ctx.save();
+      ctx.translate(bl.x, bl.y);
+      ctx.rotate(ang);
+
+      // comet tail
+      var tl = ctx.createLinearGradient(0, 0, -110, 0);
+      tl.addColorStop(0, 'rgba(255,209,102,0.85)');
+      tl.addColorStop(0.5, 'rgba(127,224,184,0.35)');
+      tl.addColorStop(1, 'rgba(127,224,184,0)');
+      ctx.fillStyle = tl;
+      ctx.beginPath(); ctx.moveTo(0, -8); ctx.quadraticCurveTo(-60, -3, -110, 0); ctx.quadraticCurveTo(-60, 3, 0, 8); ctx.closePath(); ctx.fill();
+      var tl2 = ctx.createLinearGradient(0, 0, -70, 0);
+      tl2.addColorStop(0, 'rgba(255,251,236,0.95)');
+      tl2.addColorStop(1, 'rgba(255,251,236,0)');
+      ctx.fillStyle = tl2;
+      ctx.beginPath(); ctx.moveTo(0, -3.5); ctx.lineTo(-70, 0); ctx.lineTo(0, 3.5); ctx.closePath(); ctx.fill();
+
+      // trailing sparkles
+      for (var sp = 1; sp <= 4; sp++) {
+        var sx = -sp * 20 - 6, sy = Math.sin(clock * 14 + sp * 1.7) * (3 + sp);
+        ctx.globalAlpha = 0.8 - sp * 0.17;
+        ctx.fillStyle = sp % 2 ? COL.mint : COL.sun;
+        ctx.beginPath(); ctx.arc(sx, sy, 2.4 - sp * 0.35, 0, 6.283); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // halo
+      var hg = ctx.createRadialGradient(0, 0, 0, 0, 0, 22);
+      hg.addColorStop(0, 'rgba(255,251,236,0.95)');
+      hg.addColorStop(0.3, 'rgba(255,209,102,0.7)');
+      hg.addColorStop(1, 'rgba(255,209,102,0)');
+      ctx.fillStyle = hg;
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.283); ctx.fill();
+
+      // spinning star core
+      ctx.save();
+      ctx.rotate(clock * 8);
+      ctx.fillStyle = COL.sun;
+      ctx.beginPath();
+      for (var pt2 = 0; pt2 < 8; pt2++) {
+        var rad = pt2 % 2 ? 4.5 : 10, pa = pt2 * Math.PI / 4;
+        ctx.lineTo(Math.cos(pa) * rad, Math.sin(pa) * rad);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#fffbe8';
+      ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, 6.283); ctx.fill();
+      ctx.restore();
+    }
+
+    for (var p = 0; p < parts.length; p++) {
+      var pt = parts[p];
+      ctx.globalAlpha = Math.max(0, pt.life / pt.max); ctx.fillStyle = pt.c;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = COL['chalk-dim']; ctx.font = '600 10px ' + FB;
+    try { ctx.letterSpacing = '2px'; } catch (e) {}
+    ctx.fillText('NGHĨA TIẾNG VIỆT', W / 2, pivot.y + 20);
+    try { ctx.letterSpacing = '0px'; } catch (e) {}
+    var vi = (playing && target) ? target[1] : 'Sẵn sàng?';
+    var size = Math.min(38, BAR * 0.44) * (1 + 0.22 * pop);
+    ctx.font = '800 ' + size + 'px ' + FD;
+    var tw = ctx.measureText(vi).width;
+    if (tw > W - 40) { size = size * (W - 40) / tw; ctx.font = '800 ' + size + 'px ' + FD; }
+    ctx.fillStyle = COL.sun; ctx.fillText(vi, W / 2, H - 15);
+
+    ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (var q = 0; q < floats.length; q++) {
+      var ft = floats[q];
+      ctx.globalAlpha = Math.min(1, ft.life / 0.5);
+      ctx.font = '800 ' + ft.size + 'px ' + FD;
+      var w2 = ctx.measureText(ft.text).width;
+      var fx = Math.max(w2 / 2 + 8, Math.min(W - w2 / 2 - 8, ft.x));
+      ctx.lineWidth = 5; ctx.strokeStyle = COL['ink-deep']; ctx.strokeText(ft.text, fx, ft.y);
+      ctx.fillStyle = ft.color; ctx.fillText(ft.text, fx, ft.y);
+    }
+    ctx.globalAlpha = 1;
+
+    if (flash > 0) { ctx.fillStyle = COL.coral; ctx.globalAlpha = flash * 0.4; ctx.fillRect(-20, -20, W + 40, H + 40); ctx.globalAlpha = 1; }
+    ctx.restore();
+  }
+
+  /* ---------- Overlays ---------- */
+  function setOverlay(html) {
+    overlay.innerHTML = html; overlay.hidden = false; overlay.scrollTop = 0;
+    var primary = overlay.querySelector('.primary');
+    if (primary) primary.focus({ preventScroll: true });
+  }
+  function showMenu() {
+    state = 'menu'; demoT = 0;
+    remaining = poolFor(topicKey).slice();
+    hud();
+    var chips = Object.keys(TOPICS).map(function (k) {
+      return '<button type="button" class="chip" role="radio" aria-checked="' + (k === topicKey) + '" data-topic="' + k + '">' + TOPICS[k].name + '</button>';
+    }).join('');
+    setOverlay(
+      '<div class="panel">' +
+      '<p class="eyebrow">Học từ vựng tiếng Anh</p>' +
+      '<h1>Mưa Từ Vựng</h1>' +
+      '<p class="lead">Nghĩa tiếng Việt hiện ở đáy màn hình. Hãy bắn trúng từ tiếng Anh đang rơi có nghĩa đó. Trả lời đúng hết các từ để hoàn thành chủ đề.</p>' +
+      '<div class="topics" role="radiogroup" aria-label="Chủ đề">' + chips + '</div>' +
+      '<ul class="how">' +
+      '<li>Rê chuột hoặc chạm để ngắm, nhấp hoặc chạm để bắn. Bàn phím: ← → để ngắm, Space để bắn.</li>' +
+      '<li>Luôn có tối đa 3 cụm từ rơi cùng lúc, được xếp tầng để không chồng lên nhau. Bắn nhầm hoặc để từ đúng chạm đáy chỉ bị tính là sai (từ đó sẽ rơi lại) — không giới hạn số lần sai.</li>' +
+      '<li>Chơi đến khi trả lời đúng hết các từ của chủ đề. Trả lời đúng liên tiếp để nhân điểm (tối đa ×5). Không giới hạn thời gian — cứ thong thả mà ngắm.</li></ul>' +
+      '<div class="actions"><button type="button" class="btn primary" id="go">Bắt đầu chơi</button></div>' +
+      '<p class="best">Điểm cao nhất: <b>' + best + '</b></p>' +
+      '</div>');
+  }
+  function showPause() {
+    setOverlay(
+      '<div class="panel"><h2>Tạm dừng</h2>' +
+      '<p class="best">Còn <b>' + remaining.length + '</b> từ chưa trả lời đúng · Sai <b>' + wrongCount + '</b> lần.</p>' +
+      '<div class="actions"><button type="button" class="btn primary" id="resume">Tiếp tục</button>' +
+      '<button type="button" class="btn" id="menu">Về menu</button></div></div>');
+  }
+  function showResult(isNew) {
+    var list = Array.from(missed.values()).slice(0, 12);
+    var review = list.length
+      ? '<h3>Từ cần ôn</h3><ul class="review">' + list.map(function (e) { return '<li><b>' + e[0] + '</b><span>' + e[1] + '</span></li>'; }).join('') + '</ul>'
+      : '';
+    setOverlay(
+      '<div class="panel">' +
+      '<p class="eyebrow">Đã học hết từ vựng</p>' +
+      '<h2>Hoàn thành!</h2>' +
+      '<p class="lead">Bạn đã trả lời đúng cả ' + pool.length + ' từ của chủ đề này.</p>' +
+      '<div class="result">' +
+      '<div><span>Điểm</span><b>' + score + '</b></div>' +
+      '<div><span>Cấp</span><b>' + level + '</b></div>' +
+      '<div><span>Từ đúng</span><b>' + correctCount + '</b></div>' +
+      '<div><span>Sai</span><b>' + wrongCount + '</b></div>' +
+      '</div>' +
+      '<p class="best">' + (isNew ? 'Kỷ lục mới! ' : '') + 'Điểm cao nhất: <b>' + best + '</b></p>' +
+      review +
+      '<div class="actions"><button type="button" class="btn primary" id="again">Chơi lại</button>' +
+      '<button type="button" class="btn" id="menu">Đổi chủ đề</button></div>' +
+      '</div>');
+  }
+
+  overlay.addEventListener('click', function (e) {
+    var t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.topic) {
+      topicKey = t.dataset.topic;
+      overlay.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-checked', String(c === t)); });
+      remaining = poolFor(topicKey).slice();
+      hud();
+    } else if (t.id === 'go' || t.id === 'again') startGame();
+    else if (t.id === 'resume') resume();
+    else if (t.id === 'menu') { words = []; showMenu(); }
+  });
+  btnPause.addEventListener('click', function () { if (state === 'play') pause(); else if (state === 'pause') resume(); });
+  btnMute.addEventListener('click', function () { toggleMute(); btnMute.blur(); });
+
+  /* ---------- Input ---------- */
+  function pointerPos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  canvas.addEventListener('pointermove', function (e) { if (state === 'play') aimAt(pointerPos(e)); });
+  canvas.addEventListener('pointerdown', function (e) {
+    if (state !== 'play') return;
+    e.preventDefault(); aimAt(pointerPos(e)); fire();
+  });
+  window.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'm' || k === 'M') { toggleMute(); return; }
+    if (k === 'p' || k === 'P' || k === 'Escape') {
+      if (state === 'play') { pause(); e.preventDefault(); } else if (state === 'pause') { resume(); e.preventDefault(); }
+      return;
+    }
+    if (state !== 'play') return;
+    if (k === ' ' || k === 'ArrowUp') { e.preventDefault(); fire(); }
+    else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); keys.l = true; }
+    else if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); keys.r = true; }
+  });
+  window.addEventListener('keyup', function (e) {
+    var k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.l = false;
+    else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.r = false;
+  });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
+
+  /* ---------- Loop ---------- */
+  var last = 0;
+  function frame(ts) {
+    var dt = Math.min(0.05, (ts - last) / 1000 || 0);
+    last = ts;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  showMenu();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
